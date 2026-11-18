@@ -1,0 +1,41 @@
+# ---- Node / frontend ----
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# ---- Rust / Tauri ----
+target/
+src-tauri/target/
+src-tauri/gen/
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Editors / IDEs ----
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---- Temporary / backup files ----
+*.tmp
+*.temp
+*.bak
+*~
+
+# ---- Environment / secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Local output & test artifacts ----
+frames/
+*.mp4
+output/

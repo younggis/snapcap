@@ -1,0 +1,88 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SnapCap",
+  "version": "0.1.0",
+  "identifier": "com.snapcap.app",
+  "build": {
+    "beforeDevCommand": "pnpm ui:dev",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "pnpm ui:build",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "url": "index.html?view=settings",
+        "title": "SnapCap",
+        "width": 420,
+        "height": 580,
+        "minWidth": 360,
+        "minHeight": 460,
+        "backgroundColor": "#F3F5F9",
+        "visible": false,
+        "resizable": true,
+        "center": true
+      },
+      {
+        "label": "overlay",
+        "url": "index.html?view=overlay",
+        "transparent": true,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": false,
+        "fullscreen": false,
+        "shadow": false
+      },
+      {
+        "label": "editor",
+        "url": "index.html?view=editor",
+        "title": "SnapCap 标记",
+        "width": 900,
+        "height": 680,
+        "minWidth": 640,
+        "minHeight": 480,
+        "visible": false,
+        "resizable": true,
+        "center": true
+      },
+      {
+        "label": "recorder",
+        "url": "index.html?view=recorder",
+        "title": "SnapCap 录制",
+        "width": 360,
+        "height": 660,
+        "alwaysOnTop": true,
+        "visible": false,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "id": "tray",
+      "tooltip": "SnapCap",
+      "menuOnLeftClick": false
+    },
+    "withGlobalTauri": false
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://example.com/snapcap/updates/{{target}}/{{current_version}}"
+      ],
+      "dialog": true,
+      "pubkey": "PLACEHOLDER_REPLACE_WITH_UPDATER_PUBLIC_KEY"
+    },
+    "log": null
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "publisher": "SnapCap",
+    "copyright": "Copyright © 2026 SnapCap"
+  }
+}
