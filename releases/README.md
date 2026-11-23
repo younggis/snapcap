@@ -39,10 +39,14 @@
 - **窗口图不再空白**：`GetWindowDC` + 32bpp DIB 的 `BitBlt(SRCCOPY)` 不写 alpha，窗口 DC 抓到的 alpha 常为 0，编码后 PNG 大片透明、编辑器里看似空白；现在 GDI 抓帧统一把 alpha 置为 255。
 - **微信 / QQ 等 GPU 渲染窗口不再全黑**：这类窗口由 DWM 合成，`GetWindowDC` 只能抓到全黑位图；窗口截图改走屏幕 DC + 窗口屏幕矩形，抓的是用户实际看到的合成画面（抓帧前会临时恢复并前置目标窗口）。
 - **透明穿透窗口不再干扰选窗**：带 `WS_EX_TRANSPARENT` 的鼠标穿透覆盖层（屏幕光标 / 标注工具窗口）不再列入可选窗口，否则它们置顶铺屏，总被 hover 命中而选不中真实目标。
+- **窗口识别更准**：`zoneAt` 不再返回枚举顺序里第一个矩形包含光标的窗口 —— 最大化的浏览器 / 桌面外壳矩形也覆盖光标，会把 QQ 等小窗口挡住识别不到；现在改为在光标命中的窗口里选**面积最小（最具体）**那个。
+- **文字标注 Enter 提交恢复**：Enter/Esc 全局快捷键原先常驻注册，会在系统层吞掉按键，导致标注编辑器输入框的回车无法提交文字（表现为「添加文字标注不成功 / 颜色没生效 / 回车没反应」）；现在仅在选区覆盖层打开期间注册，关闭后立即注销，键盘交还编辑器。
 
 真实 UI 实测（WebView2 CDP + 真实键盘，非模拟）：
 - GDI 窗口：受控 WinForms 窗口 538×367 → 覆盖层识别 10–17 个窗口 → 悬停/选中显示「已识别：SnapCap E2E Target」→ 真实 Enter → 编辑器画布实际绘制像素占比 38.5%、保存路径可见 → 输出 PNG 538×367，alpha=1、颜色数 64。修复前该 PNG 有 81% 像素 alpha≈0，正是「编辑器空白」的根因。
 - GPU 窗口：真实 QQ 窗口 1075×924（125% DPI）→ 同样全链路 → 输出 PNG 1075×924，alpha=1、黑色占比 0.9%、颜色数 128。修复前 `GetWindowDC` 抓同一窗口是 100% 全黑。
+- 窗口识别：目标点被 12 个窗口的矩形同时覆盖，`zoneAt` 正确选中面积最小的目标窗口（538×367），不再误选铺满屏幕的 maximize 窗口。
+- 文字标注：选文字工具 + 蓝色，输入文字后按**真实 Enter** → 输入框关闭、蓝色像素落在画布（CDP Enter 337 → 真实 Enter 498，递增），颜色生效。修复前真实 Enter 完全无反应。
 
 ## 文件
 
@@ -66,7 +70,7 @@
 
 一键验收：`powershell -ExecutionPolicy Bypass -File tests\acceptance\run_all.ps1`
 
-2026-11-18 完整执行结果：**11 项检查全部通过**（exit 0）。
+2026-11-23 完整执行结果：**12 项检查全部通过**（exit 0）。
 
 | 检查 | 结果 |
 |---|---|
@@ -81,6 +85,7 @@
 | AC-5 冷启动 | ✅ 进程常驻、主窗口可见、空闲内存约 35 MB |
 | 窗口截图真实 UI E2E | ✅ 点击「窗口」→ 识别 10–17 个窗口 → 悬停/选中显示「已识别：SnapCap E2E Target」→ 选中 538×367 目标 → 真实 Enter → 编辑器画布像素占比 38.5% → PNG 538×367 落盘（alpha=1，颜色数 64） |
 | GPU 窗口截图 E2E | ✅ 真实 QQ 窗口 1075×924 → 真实 Enter → PNG 1075×924 落盘（alpha=1、黑色占比 0.9%、颜色数 128），不再全黑 |
+| 文字标注真实 UI E2E | ✅ 文字工具 + 蓝色 → 真实 Enter 提交 → 画布蓝色像素递增（337→498），输入框关闭，颜色生效 |
 
 E2E 使用隔离配置与临时输出目录（`SNAPCAP_CONFIG_DIR`），不会向用户的 `Pictures\SnapCap` 写入测试图片。视觉证据：`../tests/acceptance/artifacts/window-overlay-proof.png`（窗口识别高亮）、`../tests/acceptance/artifacts/window-capture-proof.png`（最终 538×367 窗口图）、`../tests/acceptance/artifacts/gpu-window/window-capture-proof.png`（真实 QQ GPU 窗口图）。
 

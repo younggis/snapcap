@@ -96,6 +96,43 @@ pub fn register_all<R: Runtime>(_app: &AppHandle<R>, _settings: &Settings) -> Re
     Ok(())
 }
 
+/// 仅在选区覆盖层打开期间注册的 Enter / Escape 全局兜底。
+///
+/// 覆盖层是透明分层窗口，通常拿不到键盘焦点，DOM keydown 收不到按键，因此
+/// 需要全局快捷键把 Enter/Esc 转发给覆盖层。但全局快捷键会在操作系统层面
+/// 「吃掉」按键：如果常驻注册，标注编辑器里输入框的回车（提交文字标注）
+/// 就永远到不了 WebView，表现为「添加文字标注不成功 / 回车没反应」。
+/// 所以这两个键只在覆盖层可见时注册，关闭后立即注销，把键盘交还给编辑器。
+pub fn install_overlay_nav<R: Runtime>(app: &AppHandle<R>, state: AppState) -> Result<()> {
+    let shortcuts = app.global_shortcut();
+    // 上一次流程若异常退出可能残留注册；先清掉再装，避免重复注册报错。
+    let _ = shortcuts.unregister("Escape");
+    let _ = shortcuts.unregister("Enter");
+
+    let s = state.clone();
+    let h = app.clone();
+    shortcuts.on_shortcut("Escape", move |_, _, _| {
+        if s.pending_selection.lock().is_some() {
+            let _ = h.emit("overlay:escape", ());
+        }
+    })?;
+    let s = state.clone();
+    let h = app.clone();
+    shortcuts.on_shortcut("Enter", move |_, _, _| {
+        if s.pending_selection.lock().is_some() {
+            let _ = h.emit("overlay:confirm", ());
+        }
+    })?;
+    Ok(())
+}
+
+/// 覆盖层关闭后注销 Enter / Escape 全局兜底，恢复编辑器的键盘输入。
+pub fn remove_overlay_nav<R: Runtime>(app: &AppHandle<R>) {
+    let shortcuts = app.global_shortcut();
+    let _ = shortcuts.unregister("Escape");
+    let _ = shortcuts.unregister("Enter");
+}
+
 /// 注销所有已注册组合键（设置变更时先注销旧值）。
 pub fn unregister_all<R: Runtime>(app: &AppHandle<R>) -> Result<()> {
     app.global_shortcut()

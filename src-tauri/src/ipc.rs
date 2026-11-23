@@ -344,6 +344,11 @@ pub async fn open_region_overlay(
         }
         return Err(AppError::internal(format!("显示选区窗口失败: {e}")));
     }
+    // 仅在覆盖层可见时注册 Enter/Esc 全局兜底；关闭后立即注销，避免吞掉
+    // 标注编辑器输入框的回车（否则文字标注无法通过 Enter 提交）。
+    if let Err(err) = crate::hotkey::install_overlay_nav(&app, state.inner().clone()) {
+        tracing::warn!("注册覆盖层 Enter/Esc 兜底失败: {err:#}");
+    }
     tracing::debug!("覆盖层已打开，mode={mode}");
 
     let payload = match rx.await {
@@ -354,6 +359,7 @@ pub async fn open_region_overlay(
             cancelled: true,
         },
     };
+    crate::hotkey::remove_overlay_nav(&app);
     *state.pending_selection.lock() = None;
     if let Some(window) = app.get_webview_window("overlay") {
         let _ = window.hide();

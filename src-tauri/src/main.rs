@@ -177,28 +177,9 @@ fn main() {
                 tracing::warn!("安装/注册热键失败: {err:#}");
             }
 
-            // Esc / Enter 全局兜底：overlay 是透明分层窗口，通常拿不到键盘焦点，
-            // DOM keydown 收不到按键。因此在 Rust 侧用全局快捷键兜底。
-            {
-                let s = app_state.clone();
-                let h = app.handle().clone();
-                if let Err(err) = app.global_shortcut().on_shortcut("Escape", move |_, _, _| {
-                    if s.pending_selection.lock().is_some() {
-                        let _ = h.emit("overlay:escape", ());
-                    }
-                }) {
-                    tracing::warn!("注册 Escape 取消选区失败: {err:#}");
-                }
-                let s2 = app_state.clone();
-                let h2 = app.handle().clone();
-                if let Err(err) = app.global_shortcut().on_shortcut("Enter", move |_, _, _| {
-                    if s2.pending_selection.lock().is_some() {
-                        let _ = h2.emit("overlay:confirm", ());
-                    }
-                }) {
-                    tracing::warn!("注册 Enter 确认选区失败: {err:#}");
-                }
-            }
+            // Esc / Enter 兜底不再常驻注册：全局快捷键会在系统层吞掉按键，
+            // 导致标注编辑器输入框的回车无法提交文字。改为仅在覆盖层打开期间
+            // 注册（见 ipc::open_region_overlay），关闭后立刻注销。
 
             // 让所有自身窗口对截图/录屏采集不可见（用户仍可见）。
             // 在窗口创建后立即设置，避免每次抓屏时 hide()/show() 的时序竞态。

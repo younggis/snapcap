@@ -212,6 +212,22 @@ try {
   if (!hoverText.includes(targetInfo.title)) {
     throw new Error(`hover chip did not show window title: ${JSON.stringify(hoverText)}`)
   }
+
+  // 回归「窗口识别不准」：最大化的浏览器/桌面外壳等窗口矩形也包含光标，
+  // 旧实现返回枚举顺序里第一个命中的窗口，会选中大窗口而不是真实目标。
+  // 断言：光标命中的窗口里，被高亮的必须是面积最小的那个（最具体）。
+  const allWins = await evaluate(overlay, `(async () => await window.__TAURI_INTERNALS__.invoke('list_windows'))()`)
+  const pxPhys = targetInfo.x + targetInfo.width / 2
+  const pyPhys = targetInfo.y + targetInfo.height / 2
+  const containing = allWins.filter(w => {
+    const r = w.rect
+    return pxPhys >= r.x && pxPhys <= r.x + r.width && pyPhys >= r.y && pyPhys <= r.y + r.height
+  })
+  const smallest = containing.slice().sort((a, b) => (a.rect.width * a.rect.height) - (b.rect.width * b.rect.height))[0]
+  console.log(`PICK containing=${containing.length} smallestHwnd=${smallest ? smallest.hwnd : 'none'} targetHwnd=${targetInfo.hwnd}`)
+  if (containing.length > 1 && smallest && String(smallest.hwnd) !== String(targetInfo.hwnd)) {
+    throw new Error(`smallest containing window is ${smallest.hwnd} (${smallest.title}), not target ${targetInfo.hwnd}`)
+  }
   if (artifactsDir) {
     try {
       const viewport = await evaluate(overlay, '({ w: window.innerWidth, h: window.innerHeight })')

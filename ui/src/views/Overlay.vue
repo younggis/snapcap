@@ -61,12 +61,30 @@ function buildZones() {
     }))
 }
 
+/**
+ * 找出光标下的窗口。不能简单返回「第一个矩形包含光标的窗口」：
+ * list_windows 会返回最大化的浏览器 / 桌面外壳等铺满屏幕的窗口，它们的矩形
+ * 也包含光标，却排在真实目标（如 QQ）之前，导致 hover/点击总是命中大窗口，
+ * 表现为「QQ 识别不到」。这里在所有命中的窗口里选面积最小的那个（最具体），
+ * 面积相同时用枚举顺序（z-order，越靠前越上层）打破平局。
+ */
 function zoneAt(x: number, y: number) {
-  for (const z of windowZones.value) {
+  let best: { hwnd: number; rect: Rect; title: string } | null = null
+  let bestArea = Infinity
+  let bestOrder = Infinity
+  for (let i = 0; i < windowZones.value.length; i++) {
+    const z = windowZones.value[i]
     const r = z.rect
-    if (x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height) return z
+    if (x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height) {
+      const area = r.width * r.height
+      if (area < bestArea || (area === bestArea && i < bestOrder)) {
+        best = z
+        bestArea = area
+        bestOrder = i
+      }
+    }
   }
-  return null
+  return best
 }
 
 function color(name: string, fallback: string) {

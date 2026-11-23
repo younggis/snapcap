@@ -158,6 +158,15 @@ Check 'E2E window capture UI (recognition + real Enter + PNG file)' {
   ($summary -join ' | ').Trim()
 }
 
+Check 'E2E text annotation (real Enter commits + color applied)' {
+  $e2e = Join-Path $PSScriptRoot 'e2e_text_annotation.ps1'
+  if (-not (Test-Path $e2e)) { throw 'e2e_text_annotation.ps1 not found' }
+  $out = Invoke-Quiet { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $e2e -Exe (Join-Path $Repo 'releases\snapcap.exe') -Repo $Repo 2>&1 | Out-String }
+  if ($LASTEXITCODE -ne 0) { throw ($out.Trim() -replace '\s+', ' ') }
+  $summary = $out -split "`n" | Where-Object { $_ -match '^(EDITOR|TOOL|CDP Enter|REAL Enter|RESULT)' }
+  ($summary -join ' | ').Trim()
+}
+
 Check 'GPU window capture (QQ/WeChat/Chromium, no black bitmap)' {
   $gpu = Join-Path $PSScriptRoot 'gpu_window.ps1'
   if (-not (Test-Path $gpu)) { throw 'gpu_window.ps1 not found' }

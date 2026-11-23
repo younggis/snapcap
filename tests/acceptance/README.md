@@ -32,7 +32,13 @@ powershell -ExecutionPolicy Bypass -File .\e2e_window.ps1 `
 - `window-overlay-proof.png`：覆盖层中的窗口识别高亮与「已识别：…」提示
 - `window-capture-proof.png`：最终抓取的窗口图（应与测试窗口物理尺寸完全一致）
 
-`run_all.ps1` 已包含该检查项（`E2E window capture UI`）。
+`run_all.ps1` 已包含该检查项（`E2E window capture UI`）。其中还断言了「窗口识别准确性」：目标点被多个窗口矩形覆盖时，被高亮/选中的必须是面积最小（最具体）的窗口，防止最大化窗口（浏览器 / 桌面外壳）挡住 QQ 等小窗口导致识别不到。
+
+### 文字标注（e2e_text_annotation.ps1）
+
+`cdp_text_flow.mjs` + `e2e_text_annotation.ps1` 在真实 UI 中回归文字标注：主窗口「全屏」截图 → 编辑器选文字工具 + 蓝色 → 输入文字 → 分别用 CDP 键盘和**真实 SendKeys Enter** 提交 → 断言输入框关闭且画布出现蓝色像素（颜色生效）。
+
+重点覆盖曾出现的回归：Enter/Esc 全局快捷键原先常驻注册，会在系统层吞掉按键，导致标注输入框回车无法提交文字。现在这两个键只在选区覆盖层打开期间注册。`run_all.ps1` 已包含该检查项（`E2E text annotation`）。
 
 ### GPU 渲染窗口（gpu_window.ps1）
 
